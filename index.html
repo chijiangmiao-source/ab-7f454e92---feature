@@ -104,6 +104,83 @@
       </section>
     </main>
 
+    <section class="panel joint-panel" id="joint-panel">
+      <div class="panel-head">
+        <h2>3. 联合复核（两次靶向测序，可选）</h2>
+        <label class="joint-toggle"><input id="joint-enabled" type="checkbox" checked /> 启用联合复核</label>
+      </div>
+      <div id="joint-body">
+        <p class="muted">
+          粘贴两份 JSON：<strong>细胞集合不同</strong>、<strong>突变标识及列顺序相同</strong>，每份仍是
+          <code>{cellNames, mutNames, rows, costs}</code> 格式并受原有规模限制；两份合计问号 ≤ 20。
+          Worker 在<strong>同一次联合搜索</strong>中精确最小化两份代价之和，并要求每个突变对在两份补全中
+          共享同一种关系（包含 / 被包含 / 相等 / 相离），不会分别求解后再比较。
+        </p>
+
+        <div class="joint-inputs">
+          <div class="joint-ta-wrap">
+            <div class="joint-ta-head">矩阵 A（第一次测序）<button id="joint-sample-ok" type="button" class="ghost">载入一致样例</button></div>
+            <textarea id="joint-a" class="joint-ta" spellcheck="false" placeholder='{"cellNames":[...],"mutNames":["m0","m1",...],"rows":[...],"costs":[...]}'></textarea>
+          </div>
+          <div class="joint-ta-wrap">
+            <div class="joint-ta-head">矩阵 B（第二次测序）<button id="joint-sample-conf" type="button" class="ghost">载入关系矛盾样例</button></div>
+            <textarea id="joint-b" class="joint-ta" spellcheck="false" placeholder='{"cellNames":[...],"mutNames":["m0","m1",...],"rows":[...],"costs":[...]}'></textarea>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button id="joint-solve-btn" type="button" class="primary">联合复核</button>
+          <button id="joint-clear" type="button" class="ghost">清空两份草稿</button>
+          <span id="joint-unknown-count" class="unknown-count mono"></span>
+          <span id="joint-status" class="status-idle">就绪</span>
+        </div>
+        <div id="joint-error-box" class="error-box" hidden></div>
+        <div id="joint-stale" class="warning-box" hidden></div>
+
+        <div id="joint-result-empty" class="placeholder">
+          尚未联合复核。结果将并列显示两份行优先 · 0 优先规范补全、各问号在<strong>全部联合最优解</strong>中的固定性，
+          以及可由两份结果交叉复核的突变对关系表。
+        </div>
+
+        <div id="joint-result-optimal" hidden>
+          <div class="metric-row">
+            <div class="metric"><div class="metric-label">联合最优总代价（A+B）</div><div id="jm-cost" class="metric-value mono"></div></div>
+            <div class="metric"><div class="metric-label">A 份代价</div><div id="jm-cost-a" class="metric-value mono"></div></div>
+            <div class="metric"><div class="metric-label">B 份代价</div><div id="jm-cost-b" class="metric-value mono"></div></div>
+            <div class="metric"><div class="metric-label">联合最优解数（任意精度）</div><div id="jm-count" class="metric-value mono big"></div></div>
+          </div>
+
+          <h3>两份规范补全（并列对照；行优先 · 0 优先；着色＝该问号在全部联合最优解中的固定性）</h3>
+          <div class="joint-matrices">
+            <div>
+              <div class="joint-side-head">矩阵 A</div>
+              <div class="table-wrap"><table id="joint-table-a" class="result-grid"></table></div>
+            </div>
+            <div>
+              <div class="joint-side-head">矩阵 B</div>
+              <div class="table-wrap"><table id="joint-table-b" class="result-grid"></table></div>
+            </div>
+          </div>
+
+          <h3>突变对关系表（两份补全必须共享同一种关系）</h3>
+          <div class="table-wrap"><table id="joint-pairs" class="pairs-table"></table></div>
+          <div id="joint-stats" class="stats-line mono"></div>
+        </div>
+
+        <div id="joint-result-conflict" hidden>
+          <h3 class="conflict-title">任一单份可解，但联合关系矛盾</h3>
+          <p class="muted" id="joint-conflict-msg"></p>
+          <div id="joint-conflict-list"></div>
+        </div>
+
+        <div id="joint-result-fixed" hidden>
+          <h3 class="conflict-title">固定数据已形成三配型冲突</h3>
+          <p class="muted">下列冲突仅由固定 0/1 构成，问号无法消除（联合复核与单份求解的判定一致）：</p>
+          <div id="joint-fixed-list"></div>
+        </div>
+      </div>
+    </section>
+
     <footer class="foot">
       约束：细胞 4–18 · 突变 3–12 · 未知格 ≤ 28 · 每格代价为非负整数。草稿自动保存在本机浏览器。
     </footer>

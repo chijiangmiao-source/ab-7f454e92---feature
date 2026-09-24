@@ -578,3 +578,7 @@ $('export-result').addEventListener('click', () => {
 ($<HTMLInputElement>('dim-c')).value = String(draft.C);
 renderInputTable();
 updateUnknownCount();
+
+// 联合复核为独立模块（独立 Worker、独立草稿、独立结果 DOM）；
+// 关闭联合复核后，上方单矩阵求解与结果不受任何影响。
+import './joint';

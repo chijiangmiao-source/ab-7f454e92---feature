@@ -27,7 +27,8 @@ function isIntString(v) {
   return typeof v === 'string' && /^\d+$/.test(v);
 }
 
-export function validateInput(raw) {
+export function validateInput(raw, opts = {}) {
+  const maxUnknownLimit = opts.maxUnknown ?? LIMITS.maxUnknown;
   const errors = [];
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return { ok: false, errors: ['输入必须为 JSON 对象。'] };
@@ -102,8 +103,8 @@ export function validateInput(raw) {
       if (val[r][c] === -1) unknownCount++;
     }
   }
-  if (unknownCount > LIMITS.maxUnknown) {
-    errors.push(`未知格（?）总数不得超过 ${LIMITS.maxUnknown}，当前为 ${unknownCount}。`);
+  if (unknownCount > maxUnknownLimit) {
+    errors.push(`未知格（?）总数不得超过 ${maxUnknownLimit}，当前为 ${unknownCount}。`);
   }
 
   // 未知格按行优先编号
@@ -186,7 +187,8 @@ export function validateInput(raw) {
 
 /* ------------------------- 模型 ------------------------- */
 
-function buildModel(data) {
+// 联合复核（joint.js）复用以下内部构件：它们均为无副作用纯函数，导出不改变单矩阵流程。
+export function buildModel(data) {
   const { R, C, val, uidAt, unknownCells, cost0, cost1 } = data;
 
   // 每列：固定 1/0 行掩码、未知格列表
@@ -217,6 +219,8 @@ function lowestBitIndex(mask) {
   return i;
 }
 
+export { lowestBitIndex };
+
 function popcount(x) {
   let n = 0;
   while (x) {
@@ -225,6 +229,8 @@ function popcount(x) {
   }
   return n;
 }
+
+export { popcount };
 
 /* 固定数据直接造成的三配型冲突（与问号无关），给出突变对与三项细胞见证 */
 export function findFixedConflicts(data) {
@@ -252,7 +258,7 @@ export function findFixedConflicts(data) {
 /* ------------------------- 列载体候选 ------------------------- */
 
 // 列 c 在种子下的基础信息：问号行掩码、全取0代价、每行“改取1”的增量
-function columnCostInfo(model, c, seedInc, seedExc) {
+export function columnCostInfo(model, c, seedInc, seedExc) {
   let varMask = 0n;
   let baseCost = 0n;
   const delta = new Map(); // r -> cost1-cost0
@@ -282,7 +288,7 @@ function columnCostInfo(model, c, seedInc, seedExc) {
 }
 
 // 由层状集合族构造一次即可复用的包含树区域结构
-function buildFamilyStructure(forest) {
+export function buildFamilyStructure(forest) {
   const uniq = [...new Set(forest)];
   const parent = new Map();
   for (const x of uniq) {
@@ -324,7 +330,7 @@ function buildFamilyStructure(forest) {
 //   - 必须包含 fixed1[c]|seedInc、排除 fixed0[c]|seedExc；
 //   - 与集合族中每个集合层状相容；每个非空相容集合有唯一“附着节点”。
 // 返回 [{S, cost}]，按 S 数值升序。
-function candidates(model, c, struct, seedInc, seedExc) {
+export function candidates(model, c, struct, seedInc, seedExc) {
   const mustInc = model.fixed1[c] | seedInc;
   const mustExc = model.fixed0[c] | seedExc;
   if ((mustInc & mustExc) !== 0n) return [];
@@ -423,7 +429,7 @@ function candidates(model, c, struct, seedInc, seedExc) {
 /* ------------------------- 搜索状态 ------------------------- */
 
 // 种子：uid -> 0/1，转换为按列的行包含/排除掩码
-function seedMasks(model, seeds) {
+export function seedMasks(model, seeds) {
   const inc = new Array(model.C).fill(0n);
   const exc = new Array(model.C).fill(0n);
   for (const [uid, v] of seeds) {
@@ -435,7 +441,7 @@ function seedMasks(model, seeds) {
   return { inc, exc };
 }
 
-function makeSearch(model) {
+export function makeSearch(model) {
   const C = model.C;
   const ZERO_INC = new Array(C).fill(0n);
   const ZERO_EXC = new Array(C).fill(0n);

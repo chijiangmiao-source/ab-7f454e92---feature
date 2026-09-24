@@ -7,6 +7,7 @@
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { validateInput, solveProblem } from '../src/solver/core.js';
+import { validateJointInput, solveJoint } from '../src/solver/joint.js';
 
 const ROOT = new URL('../', import.meta.url).pathname;
 const log = (s) => process.stdout.write(s + '\n');
@@ -103,6 +104,68 @@ const conf = {
   log('  · 冲突突变对 m0×m1 与见证 11=A、10=B、01=C 已核对');
 }
 log('✓ 固定样例核对通过\n');
+
+/* ---------- 3b. 联合复核样例核对（联合最优 / 首个冲突突变对） ---------- */
+log('▶ [3b/4] 联合复核样例核对');
+const jointOK = {
+  a: {
+    cellNames: ['A1', 'A2', 'A3', 'A4'], mutNames: ['m0', 'm1', 'm2'],
+    rows: [['1', '?', '0'], ['?', '1', '0'], ['0', '0', '1'], ['0', '0', '0']],
+    costs: [
+      [null, { c0: '0', c1: '3' }, null],
+      [{ c0: '0', c1: '2' }, null, null],
+      [null, null, null],
+      [null, null, null],
+    ],
+  },
+  b: {
+    cellNames: ['B1', 'B2', 'B3', 'B4'], mutNames: ['m0', 'm1', 'm2'],
+    rows: [['1', '1', '0'], ['?', '?', '0'], ['0', '0', '?'], ['0', '0', '0']],
+    costs: [
+      [null, null, null],
+      [{ c0: '1', c1: '0' }, { c0: '1', c1: '0' }, null],
+      [null, null, { c0: '0', c1: '4' }],
+      [null, null, null],
+    ],
+  },
+};
+{
+  const v = validateJointInput(jointOK);
+  if (!v.ok) fail('联合一致样例校验失败：' + v.errors.join(';'));
+  const s = solveJoint(v.data);
+  if (s.status !== 'optimal') fail('联合一致样例应为 optimal');
+  if (s.optimalCost !== '3') fail(`联合最优总代价应为 3，实际 ${s.optimalCost}`);
+  if (BigInt(s.optimalCount) < 1n) fail('联合最优解数应 ≥ 1');
+  if (!s.pairs.length) fail('突变对关系表不应为空');
+  if (!s.pairs.every((p) => p.consistent)) fail('一致样例的突变对关系应全部一致');
+  const flatA = s.a.completion.map((r) => r.join('')).join('');
+  if (!/^[01]+$/.test(flatA)) fail('A 规范补全应为完整 0/1 矩阵');
+  log(`  · 联合最优总代价=3、计数=${s.optimalCount}、${s.pairs.length} 对突变关系全部一致已核对`);
+}
+
+const jointConflictPair = {
+  a: {
+    cellNames: ['a0', 'a1', 'a2', 'a3'], mutNames: ['m0', 'm1', 'm2'],
+    rows: [['1', '1', '0'], ['1', '0', '0'], ['0', '0', '0'], ['0', '0', '0']],
+    costs: Array.from({ length: 4 }, () => [null, null, null]),
+  },
+  b: {
+    cellNames: ['b0', 'b1', 'b2', 'b3'], mutNames: ['m0', 'm1', 'm2'],
+    rows: [['1', '1', '0'], ['0', '1', '0'], ['0', '0', '0'], ['0', '0', '0']],
+    costs: Array.from({ length: 4 }, () => [null, null, null]),
+  },
+};
+{
+  const v = validateJointInput(jointConflictPair);
+  if (!v.ok) fail('联合矛盾样例校验失败：' + v.errors.join(';'));
+  const s = solveJoint(v.data);
+  if (s.status !== 'joint-conflict') fail('联合矛盾样例应为 joint-conflict');
+  if (!s.conflict || s.conflict.mutA !== 'm1' || s.conflict.mutB !== 'm0') {
+    fail(`首个冲突对应为 m1×m0，实际 ${s.conflict && `${s.conflict.mutA}×${s.conflict.mutB}`}`);
+  }
+  log('  · 联合矛盾已定位首个冲突突变对 m1×m0（列序贪心）');
+}
+log('✓ 联合复核样例核对通过\n');
 
 /* ---------- 4. HTTP 冒烟 ---------- */
 log('▶ [4/4] HTTP 冒烟（页面 + /healthz）');
