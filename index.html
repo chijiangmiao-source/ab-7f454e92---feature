@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>完美谱系补全 · 单细胞靶向测序</title>
+    <link rel="stylesheet" href="/src/ui/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>完美谱系最小代价补全</h1>
+      <p class="subtitle">
+        无限位点约束：任意两列不得同时出现 <code>11 / 10 / 01</code> 三种配型。
+        浏览器内 Web Worker 精确求解，不枚举保存全部完成矩阵。
+      </p>
+    </header>
+
+    <main class="layout">
+      <section class="panel input-panel">
+        <div class="panel-head">
+          <h2>1. 录入数据</h2>
+          <div class="dim-controls">
+            <label>细胞数
+              <input id="dim-r" type="number" min="4" max="18" value="6" />
+            </label>
+            <label>突变数
+              <input id="dim-c" type="number" min="3" max="12" value="5" />
+            </label>
+            <button id="apply-dims" type="button">应用尺寸</button>
+          </div>
+        </div>
+
+        <div class="sample-controls">
+          <button id="sample-amb" type="button">载入歧义样例</button>
+          <button id="sample-conf" type="button">载入冲突样例</button>
+          <button id="sample-chain" type="button">载入嵌套链样例</button>
+          <button id="clear-all" type="button" class="ghost">清空</button>
+        </div>
+
+        <div class="table-wrap">
+          <table id="input-table"></table>
+        </div>
+
+        <div class="action-row">
+          <button id="solve-btn" type="button" class="primary">求解补全</button>
+          <span id="unknown-count" class="unknown-count mono"></span>
+          <span id="worker-status" class="status-idle">就绪</span>
+        </div>
+        <div id="error-box" class="error-box" hidden></div>
+      </section>
+
+      <section class="panel result-panel">
+        <div class="panel-head"><h2>2. 结果</h2></div>
+
+        <div id="result-empty" class="placeholder">
+          尚未求解。结果包含：任意精度最优补全数、行优先 0 优先规范矩阵、规范克隆树，以及每个问号的固定性。
+        </div>
+
+        <div id="result-stale" class="warning-box" hidden></div>
+
+        <div id="result-optimal" hidden>
+          <div class="metric-row">
+            <div class="metric">
+              <div class="metric-label">最优补总代价</div>
+              <div id="m-cost" class="metric-value mono"></div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">最优补全数（任意精度）</div>
+              <div id="m-count" class="metric-value mono big"></div>
+            </div>
+          </div>
+
+          <h3>规范补全矩阵（行优先 · 0 优先裁决）</h3>
+          <div class="legend">
+            <span class="tag tag-fixed0">固定 0</span>
+            <span class="tag tag-fixed1">固定 1</span>
+            <span class="tag tag-variable">同优可变</span>
+            <span class="tag tag-original">原始已知</span>
+          </div>
+          <div class="table-wrap"><table id="result-table" class="result-grid"></table></div>
+
+          <h3>规范克隆树（突变载体包含关系）</h3>
+          <div id="tree-box" class="tree-box"></div>
+          <div id="empty-muts" class="empty-muts" hidden></div>
+
+          <div class="export-row">
+            <button id="export-result" type="button" class="ghost">导出结果 JSON</button>
+            <button id="export-input" type="button" class="ghost">导出输入 JSON</button>
+          </div>
+          <div id="stats-line" class="stats-line mono"></div>
+        </div>
+
+        <div id="result-conflict" hidden>
+          <h3 class="conflict-title">固定数据已形成三配型冲突</h3>
+          <p class="muted">下列突变对在固定的 0/1 中已经同时出现 11、10、01，问号无法消除：</p>
+          <div id="conflict-list"></div>
+        </div>
+
+        <div id="result-infeasible" hidden>
+          <h3 class="conflict-title">不存在满足完美谱系的补全</h3>
+          <p class="muted">固定数据本身没有直接三配型，但问号的任何取值组合都会产生矛盾。</p>
+          <div id="infeasible-detail"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      约束：细胞 4–18 · 突变 3–12 · 未知格 ≤ 28 · 每格代价为非负整数。草稿自动保存在本机浏览器。
+    </footer>
+
+    <script type="module" src="/src/ui/main.ts"></script>
+  </body>
+</html>

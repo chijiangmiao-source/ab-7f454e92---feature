@@ -1,0 +1,41 @@
+services:
+  # 页面与健康路径服务；宿主机端口通过 HOST_PORT（默认 8080）可配置
+  web:
+    build:
+      context: .
+      target: runtime
+    image: perfect-phylogeny-web:latest
+    environment:
+      PORT: 8080
+      HOST: 0.0.0.0
+    ports:
+      - "${HOST_PORT:-8080}:8080"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
+    restart: unless-stopped
+
+  # 单次校验：求解器测试 → 生产构建 → 样例核对（计数/规范补全/见证）→ HTTP 冒烟
+  # 核对全部通过后以退出码 0 结束；任何一步失败即非零退出。
+  # 通过 profile 隔离，仅在显式执行 verify 时运行：
+  #   docker compose --profile verify up --build --abort-on-container-exit --exit-code-from verify
+  verify:
+    profiles: ["verify"]
+    build:
+      context: .
+      target: build
+    image: perfect-phylogeny-verify:latest
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      WEB_URL: http://web:8080
+    command: ["npm", "run", "verify"]
+    restart: "no"

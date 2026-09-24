@@ -1,0 +1,19 @@
+{
+  "name": "perfect-phylogeny-completion",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "单细胞靶向测序矩阵的无限位点完美谱系最小代价补全（浏览器内 Web Worker 精确求解）",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "serve": "node server/main.mjs",
+    "test:solver": "node --test test/",
+    "verify": "node scripts/verify.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0"
+  }
+}
