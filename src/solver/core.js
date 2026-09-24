@@ -186,7 +186,9 @@ export function validateInput(raw) {
 
 /* ------------------------- 模型 ------------------------- */
 
-function buildModel(data) {
+// 以下内部构件同时供联合复核求解器（joint.js）复用；均为纯函数，导出不改变单矩阵流程。
+
+export function buildModel(data) {
   const { R, C, val, uidAt, unknownCells, cost0, cost1 } = data;
 
   // 每列：固定 1/0 行掩码、未知格列表
@@ -282,7 +284,7 @@ function columnCostInfo(model, c, seedInc, seedExc) {
 }
 
 // 由层状集合族构造一次即可复用的包含树区域结构
-function buildFamilyStructure(forest) {
+export function buildFamilyStructure(forest) {
   const uniq = [...new Set(forest)];
   const parent = new Map();
   for (const x of uniq) {
@@ -324,7 +326,8 @@ function buildFamilyStructure(forest) {
 //   - 必须包含 fixed1[c]|seedInc、排除 fixed0[c]|seedExc；
 //   - 与集合族中每个集合层状相容；每个非空相容集合有唯一“附着节点”。
 // 返回 [{S, cost}]，按 S 数值升序。
-function candidates(model, c, struct, seedInc, seedExc) {
+// 导出供联合复核求解器（joint.js）按份生成候选后跨矩阵配对。
+export function candidates(model, c, struct, seedInc, seedExc) {
   const mustInc = model.fixed1[c] | seedInc;
   const mustExc = model.fixed0[c] | seedExc;
   if ((mustInc & mustExc) !== 0n) return [];
@@ -435,7 +438,7 @@ function seedMasks(model, seeds) {
   return { inc, exc };
 }
 
-function makeSearch(model) {
+export function makeSearch(model) {
   const C = model.C;
   const ZERO_INC = new Array(C).fill(0n);
   const ZERO_EXC = new Array(C).fill(0n);

@@ -7,6 +7,7 @@
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { validateInput, solveProblem } from '../src/solver/core.js';
+import { validateJointInput, solveJoint } from '../src/solver/joint.js';
 
 const ROOT = new URL('../', import.meta.url).pathname;
 const log = (s) => process.stdout.write(s + '\n');
@@ -101,6 +102,60 @@ const conf = {
     fail(`冲突见证不符：${JSON.stringify(cf)}`);
   }
   log('  · 冲突突变对 m0×m1 与见证 11=A、10=B、01=C 已核对');
+}
+
+/* ---------- 3b. 联合复核固定样例核对（耦合固定 / 关系矛盾定位） ---------- */
+{
+  // 耦合：A 份 m0 的两个问号单看自由，B 固定 m0=m1 ⇒ 联合最优钉死为 1、0。
+  const a = {
+    cellNames: ['A', 'B', 'C', 'D'],
+    mutNames: ['m0', 'm1', 'm2'],
+    rows: [['?', '1', '0'], ['?', '0', '0'], ['0', '0', '1'], ['0', '0', '0']],
+    costs: [
+      [{ c0: '0', c1: '0' }, null, null],
+      [{ c0: '0', c1: '0' }, null, null],
+      [null, null, null], [null, null, null],
+    ],
+  };
+  const b = {
+    cellNames: ['X', 'Y', 'Z', 'W'],
+    mutNames: ['m0', 'm1', 'm2'],
+    rows: [['1', '1', '0'], ['0', '0', '0'], ['0', '0', '1'], ['0', '0', '0']],
+    costs: [[null, null, null], [null, null, null], [null, null, null], [null, null, null]],
+  };
+  const v = validateJointInput({ a, b });
+  if (!v.ok) fail('联合复核样例校验失败：' + v.errors.join(';'));
+  const s = solveJoint(v.data);
+  if (s.status !== 'joint-optimal') fail('联合复核样例应为 joint-optimal');
+  if (s.optimalCount !== '1') fail(`联合样例最优解数应为 1，实际 ${s.optimalCount}`);
+  if (JSON.stringify(s.a.statuses) !== JSON.stringify(['fixed1', 'fixed0'])) {
+    fail(`联合耦合固定性错误：${JSON.stringify(s.a.statuses)}`);
+  }
+  for (const p of s.pairs) {
+    if (p.relA !== p.relB) fail(`联合关系表出现不一致：${p.mutA}×${p.mutB}`);
+  }
+  log('  · 联合复核：耦合固定性 [固定1,固定0]、计数=1、关系表两份一致 已核对');
+
+  // 关系矛盾：各自层状，但 m0/m1 一份相离、一份包含。
+  const ca = {
+    cellNames: ['A', 'B', 'C', 'D'],
+    mutNames: ['m0', 'm1', 'm2'],
+    rows: [['1', '0', '0'], ['1', '0', '0'], ['0', '1', '0'], ['0', '0', '1']],
+    costs: [[null, null, null], [null, null, null], [null, null, null], [null, null, null]],
+  };
+  const cb = {
+    cellNames: ['X', 'Y', 'Z', 'W', 'V'],
+    mutNames: ['m0', 'm1', 'm2'],
+    rows: [['1', '1', '0'], ['1', '1', '0'], ['1', '0', '0'], ['0', '0', '1'], ['0', '0', '0']],
+    costs: Array.from({ length: 5 }, () => [null, null, null]),
+  };
+  const vc = validateJointInput({ a: ca, b: cb });
+  const sc = solveJoint(vc.data);
+  if (sc.status !== 'joint-conflict' || !sc.conflict ||
+      sc.conflict.mutA !== 'm0' || sc.conflict.mutB !== 'm1') {
+    fail(`联合矛盾定位错误：${sc.status} ${JSON.stringify(sc.conflict)}`);
+  }
+  log('  · 联合复核：关系矛盾定位首个冲突对 m0×m1 已核对');
 }
 log('✓ 固定样例核对通过\n');
 

@@ -1,5 +1,8 @@
 import './styles.css';
 import type { SolveResult, OptimalResult, FixedConflict } from '../solver/core';
+// 联合复核界面是独立模块（独立 Worker / 草稿 / 结果区）；仅在此挂载，
+// 不改变下面任何单矩阵录入与求解逻辑。
+import './joint';
 
 /* ----------------------------- 草稿模型 ----------------------------- */
 

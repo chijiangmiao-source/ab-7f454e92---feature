@@ -207,3 +207,33 @@ td.row-head { background: #1a2338; color: var(--muted); padding: 6px 8px; white-
 .forced-note { color: var(--warning); font-size: 11px; }
 
 .foot { color: var(--muted); font-size: 12px; text-align: center; padding: 8px 20px 26px; }
+
+/* ----------------------------- 联合复核 ----------------------------- */
+
+.joint-panel { grid-column: 1 / -1; }
+.joint-toggle { font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.joint-toggle input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+.joint-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 980px) { .joint-inputs { grid-template-columns: 1fr; } }
+.joint-side-head {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; margin-bottom: 6px;
+}
+.joint-paste {
+  width: 100%; min-height: 220px; resize: vertical;
+  background: #10182a; border: 1px solid var(--border); color: var(--text);
+  border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.joint-paste:focus { outline: none; border-color: var(--accent); }
+
+.joint-grids { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+@media (max-width: 980px) { .joint-grids { grid-template-columns: 1fr; } }
+
+.pairs-grid { font-size: 12px; }
+.pairs-grid th, .pairs-grid td { padding: 6px 10px; white-space: nowrap; }
+.pairs-grid tbody tr:nth-child(odd) { background: rgba(255, 255, 255, 0.018); }
+.pair-ok { color: var(--accent-2); font-weight: 700; }
+.pair-bad { color: var(--danger); font-weight: 700; }
+#joint-ucount.over { color: var(--danger); font-weight: 700; }

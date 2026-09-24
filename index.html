@@ -102,6 +102,127 @@
           <div id="infeasible-detail"></div>
         </div>
       </section>
+
+      <section class="panel joint-panel" id="joint-panel">
+        <div class="panel-head">
+          <h2>3. 联合复核（同一肿瘤 · 两次靶向测序）</h2>
+          <label class="joint-toggle">
+            <input id="joint-enable" type="checkbox" />
+            开启联合复核
+          </label>
+        </div>
+
+        <div id="joint-body" hidden>
+          <p class="muted">
+            粘贴两份矩阵（JSON：<code>cellNames / mutNames / rows / costs</code>，与「导出输入 JSON」同格式）。
+            两份的<strong>细胞集合可以不同</strong>，但<strong>突变标识与顺序必须完全相同</strong>；
+            每份仍受原格式限制，两份合计问号 <strong>≤ 20</strong>。
+            Worker 一次性联合优化（不是分别求解后再比较），保证两份补全对每一对突变的
+            包含 / 被包含 / 相等 / 相离关系完全一致。
+          </p>
+
+          <div class="joint-inputs">
+            <div class="joint-side">
+              <div class="joint-side-head">
+                <span>矩阵一</span>
+                <button id="joint-load-draft" type="button" class="ghost">载入上方当前草稿</button>
+              </div>
+              <textarea id="joint-a" class="joint-paste" spellcheck="false"
+                placeholder='{"cellNames":["A","B","C","D"],"mutNames":["m0","m1","m2"],"rows":[["1","?","0"],…],"costs":[[null,{"c0":"0","c1":"3"},null],…]}'></textarea>
+            </div>
+            <div class="joint-side">
+              <div class="joint-side-head">
+                <span>矩阵二</span>
+                <span class="muted" id="joint-ucount"></span>
+              </div>
+              <textarea id="joint-b" class="joint-paste" spellcheck="false"
+                placeholder='{"cellNames":["X","Y","Z","W"],"mutNames":["m0","m1","m2"],"rows":[[…]],"costs":[[…]]}'></textarea>
+            </div>
+          </div>
+
+          <div class="sample-controls">
+            <button id="joint-sample-ok" type="button">载入一致样例</button>
+            <button id="joint-sample-conf" type="button">载入关系矛盾样例</button>
+            <button id="joint-sample-coupled" type="button">载入耦合固定样例</button>
+            <button id="joint-clear" type="button" class="ghost">清空两份</button>
+          </div>
+
+          <div class="action-row">
+            <button id="joint-solve" type="button" class="primary">联合复核求解</button>
+            <span id="joint-status" class="status-idle">就绪</span>
+          </div>
+          <div id="joint-error" class="error-box" hidden></div>
+          <div id="joint-stale" class="warning-box" hidden></div>
+
+          <div id="joint-result-empty" class="placeholder">
+            联合复核结果将并列显示：两份行优先 · 0 优先规范补全、每个问号在【联合最优】中的固定性，
+            以及可由两份结果逐项复核的突变对关系表。
+          </div>
+
+          <div id="joint-result-optimal" hidden>
+            <div class="metric-row">
+              <div class="metric">
+                <div class="metric-label">联合最优总代价（两份之和）</div>
+                <div id="j-cost" class="metric-value mono"></div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">矩阵一代价 / 矩阵二代价</div>
+                <div id="j-cost-ab" class="metric-value mono"></div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">联合最优解数（任意精度）</div>
+                <div id="j-count" class="metric-value mono big"></div>
+              </div>
+            </div>
+
+            <div class="legend">
+              <span class="tag tag-fixed0">固定 0</span>
+              <span class="tag tag-fixed1">固定 1</span>
+              <span class="tag tag-variable">同优可变</span>
+              <span class="tag tag-original">原始已知</span>
+            </div>
+
+            <div class="joint-grids">
+              <div>
+                <h3>矩阵一 · 规范补全</h3>
+                <div class="table-wrap"><table id="j-table-a" class="result-grid"></table></div>
+              </div>
+              <div>
+                <h3>矩阵二 · 规范补全</h3>
+                <div class="table-wrap"><table id="j-table-b" class="result-grid"></table></div>
+              </div>
+            </div>
+
+            <h3>突变对关系表（两份逐项复核）</h3>
+            <p class="muted">
+              符号：<code>=</code> 相等（同一克隆） · <code>&lt;</code> 包含于 ·
+              <code>&gt;</code> 包含 · <code>×</code> 相离。联合最优下两份符号必然一致。
+            </p>
+            <div class="table-wrap">
+              <table id="j-pairs" class="pairs-grid">
+                <thead><tr><th>突变 A</th><th>突变 B</th><th>矩阵一关系</th><th>矩阵二关系</th><th>一致</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+
+            <div class="export-row">
+              <button id="joint-export" type="button" class="ghost">导出联合复核结果 JSON</button>
+            </div>
+            <div id="j-stats" class="stats-line mono"></div>
+          </div>
+
+          <div id="joint-result-conflict" hidden>
+            <h3 class="conflict-title">两份各自可解，但不存在关系一致的联合补全</h3>
+            <div id="joint-conflict-card" class="conflict-card"></div>
+            <p class="muted">两份粘贴内容（草稿）已保留，可修改后重新复核。</p>
+          </div>
+
+          <div id="joint-result-side" hidden>
+            <h3 class="conflict-title">至少一份矩阵自身不可补全</h3>
+            <p id="joint-side-msg" class="muted"></p>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="foot">
